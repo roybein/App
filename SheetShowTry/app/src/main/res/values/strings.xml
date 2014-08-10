@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SheetShowTry</string>
+    <string name="title_activity_sheet_format">SheetFormatActivity</string>
+    <string name="title_activity_sheet_format_try">SheetFormatTryActivity</string>
+    <string name="title_activity_sheet_manual_format">SheetFormatManualActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="next">Next</string>
+
+</resources>
