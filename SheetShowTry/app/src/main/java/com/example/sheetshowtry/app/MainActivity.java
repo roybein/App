@@ -15,6 +15,7 @@ import java.util.List;
 public class MainActivity extends Activity implements IActivity {
 
     public Button buttonLoadImage;
+    public Button btnShowScrollImage;
     public TextView textView;
     public ImageView imageView;
     public static FileCache fileCache;
@@ -32,6 +33,15 @@ public class MainActivity extends Activity implements IActivity {
             public void onClick(View view) {
                 Task task = new Task(Task.TaskID.LOAD_IMAGE, null);
                 Worker worker = new Worker(0, task);
+            }
+        });
+
+        btnShowScrollImage = (Button) findViewById(R.id.button_scroll_show);
+        btnShowScrollImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), SheetScrollShowActivity.class);
+                startActivity(intent);
             }
         });
     }

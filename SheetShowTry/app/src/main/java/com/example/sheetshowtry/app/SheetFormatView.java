@@ -25,8 +25,9 @@ public class SheetFormatView extends ImageView {
     public SheetFormatView(Context context, AttributeSet attrs) {
         super(context, attrs);
         paint = new Paint();
-        paint.setStyle(Paint.Style.STROKE);
+        paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.BLUE);
+        paint.setAlpha(128);
         paint.setStrokeWidth(2);
         formatRect = new FormatRect(50, 50, 300, 300, 120, 50);
     }

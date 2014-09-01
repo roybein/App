@@ -19,12 +19,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".SheetManualFormatActivity"
+        <activity
+            android:name=".SheetManualFormatActivity"
             android:label="@string/title_activity_sheet_manual_format"
-            android:theme="@style/AppTheme" ></activity>
-        <activity android:name=".SheetShowActivity"
+            android:theme="@style/AppTheme" >
+        </activity>
+
+        <activity
+            android:name=".SheetShowActivity"
             android:label="SheetShow"
-            android:theme="@style/AppTheme"></activity>
+            android:theme="@style/AppTheme">
+        </activity>
+
+        <activity
+            android:name=".SheetScrollShowActivity"
+            android:label="SheetScrollShow"
+            android:theme="@style/AppTheme">
+        </activity>
+
     </application>
 
 </manifest>
