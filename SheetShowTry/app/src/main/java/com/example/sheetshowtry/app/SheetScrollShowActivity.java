@@ -5,12 +5,19 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 
 import java.io.File;
 
@@ -26,12 +33,19 @@ public class SheetScrollShowActivity extends Activity {
         setContentView(R.layout.activity_sheet_scroll_show);
 
         bitmap = BitmapFactory.decodeFile(sampleSheetFile.getPath());
+        Log.i(null, "get bitmap: " + bitmap.getWidth() + "," + bitmap.getHeight());
         sheetScrollShowView = (ImageView) findViewById(R.id.sheet_scroll_image_view);
+        sheetScrollShowView.setAdjustViewBounds(true);
         sheetScrollShowView.setScaleType(ImageView.ScaleType.MATRIX);
         sheetScrollShowView.setImageBitmap(bitmap);
-        //Matrix matrix = new Matrix();
-        //matrix.postRotate(90);
-        //sheetScrollShowView.setImageMatrix(matrix);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point screenSize = new Point();
+        display.getSize(screenSize);
+        Matrix matrix = new Matrix();
+        float scaleRate = (float) screenSize.x/bitmap.getWidth();
+        matrix.postScale(scaleRate, scaleRate);
+        sheetScrollShowView.setImageMatrix(matrix);
         sheetScrollShowView.setOnTouchListener(new ImageShowTouchListener());
         //sheetScrollShowView.setOnClickListener(new TestClickListener());
     }
