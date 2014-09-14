@@ -13,6 +13,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.ImageView;
 
+import com.example.sheetshowtry.app.craft.FitAxisEnum;
+
 import java.util.ArrayList;
 
 public class SheetFormatView extends ImageView {
@@ -106,8 +108,8 @@ public class SheetFormatView extends ImageView {
             return -1;
         }
 
-        public int getAlignedAngle(int axis, int srcID) {
-            if (axis == Axis.X) {
+        public int getAlignedAngle(FitAxisEnum axis, int srcID) {
+            if (axis == FitAxisEnum.FitAxisX) {
                 // get X aligned angle
                 switch (srcID) {
                     case 0:
@@ -119,7 +121,7 @@ public class SheetFormatView extends ImageView {
                     case 3:
                         return 1;
                 }
-            } else if (axis == Axis.Y) {
+            } else if (axis == FitAxisEnum.FitAxisY) {
                 // get Y aligned angle
                 switch (srcID) {
                     case 0:
@@ -175,9 +177,9 @@ public class SheetFormatView extends ImageView {
             AngleBall angleBall = angleBalls.get(id);
             angleBall.setX(dstX);
             angleBall.setY(dstY);
-            angleBall = angleBalls.get(getAlignedAngle(Axis.X, id));
+            angleBall = angleBalls.get(getAlignedAngle(FitAxisEnum.FitAxisX, id));
             angleBall.setX(dstX);
-            angleBall = angleBalls.get(getAlignedAngle(Axis.Y, id));
+            angleBall = angleBalls.get(getAlignedAngle(FitAxisEnum.FitAxisY, id));
             angleBall.setY(dstY);
         }
 
@@ -185,11 +187,6 @@ public class SheetFormatView extends ImageView {
             this.rect.set(angleBalls.get(0).getX(), angleBalls.get(0).getY(), angleBalls.get(3).getX(), angleBalls.get(3).getY());
             Log.d(LOG_TAG, "resize rect by angle to: " + this.rect.toString());
         }
-    }
-
-    public class Axis {
-        public static final int X = 0;
-        public static final int Y = 1;
     }
 
     public class AngleBall {
