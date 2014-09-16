@@ -9,6 +9,8 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -19,6 +21,7 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 
 import com.example.sheetshowtry.app.craft.FitAxisEnum;
+import com.example.sheetshowtry.app.craft.MsgWhatEnum;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -36,6 +39,7 @@ public class SheetScrollShowActivity extends Activity {
     private ViewTreeObserver vto;
     private Sheet sheet;
     private SheetMoveRecorder recorder;
+    private SheetController controller;
     private boolean isRecording = false;
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,40 +47,55 @@ public class SheetScrollShowActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         setContentView(R.layout.activity_sheet_scroll_show);
-
-        bitmap = BitmapFactory.decodeFile(sampleSheetFile.getPath());
-        Log.i(LOG_TAG, "get bitmap: " + bitmap.getWidth() + "," + bitmap.getHeight());
-
         sheetScrollShowView = (ImageView) findViewById(R.id.sheet_scroll_image_view);
 
-        convertBitmapToFullScreen();
-        sheet = new Sheet(bitmap, sheetScrollShowView);
-        sheet.show();
-        recorder = new SheetMoveRecorder(sheet);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                init();
+            }
+        }).start();
 
         vto = sheetScrollShowView.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
-                //vto.removeOnGlobalLayoutListener(this);
-                imageViewRect = new Rect();
-                sheetScrollShowView.getDrawingRect(imageViewRect);
-                Log.i(LOG_TAG, "get imageViewRect=" + imageViewRect.toShortString());
-                sheet.setImageViewRect(imageViewRect);
-                sheet.initOffsetRect();
-                //sheetScrollShowView.setOnTouchListener(new ImageShowTouchListener());
-                sheetScrollShowView.setOnTouchListener(new SheetOnTouchListener(sheet));
-
-                if (isRecording == false) {
-                    isRecording = true;
-                    recorder.startRecord();
-                }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        postLayoutInit();
+                    }
+                }).start();
             }
         });
     }
 
-    protected void convertBitmapToFullScreen() {
+    protected void init() {
+        bitmap = BitmapFactory.decodeFile(sampleSheetFile.getPath());
+        Log.i(LOG_TAG, "get bitmap: " + bitmap.getWidth() + "," + bitmap.getHeight());
+        convertBitmapToFullScreen(bitmap);
+
+        sheet = new Sheet(bitmap, sheetScrollShowView);
+        recorder = new SheetMoveRecorder(sheet);
+        controller = new SheetController(sheet, recorder);
+        sheet.setHandler(controller.getHandler());
+        recorder.setHandler(controller.getHandler());
+        sheet.show();
+    }
+
+    protected void postLayoutInit() {
+        imageViewRect = new Rect();
+        sheetScrollShowView.getDrawingRect(imageViewRect);
+        Log.i(LOG_TAG, "get imageViewRect=" + imageViewRect.toShortString());
+        sheet.setImageViewRect(imageViewRect);
+        sheet.initOffsetRect();
+        sheet.setFitAxis(FitAxisEnum.FitAxisX);
+        sheetScrollShowView.setOnTouchListener(new SheetOnTouchListener(sheet));
+    }
+
+    protected void convertBitmapToFullScreen(Bitmap bitmap) {
         Display display = getWindowManager().getDefaultDisplay();
         Point screenSize = new Point();
         display.getSize(screenSize);
@@ -86,8 +105,6 @@ public class SheetScrollShowActivity extends Activity {
         bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
                 bitmap.getHeight(), matrix, true);
     }
-
-
 
     class SheetOnTouchListener implements View.OnTouchListener {
 
@@ -185,13 +202,19 @@ class Sheet {
     private Matrix matrix;
     private PointF offsetVect;
     private FitAxisEnum fitAxis = FitAxisEnum.FitAxisNone;
+    private Handler handler = null;
 
-    protected Sheet(Bitmap bmp, ImageView view) {
+    protected Sheet(Bitmap bmp, ImageView view, Handler handler) {
         this.imageView = view;
         this.bmp = bmp;
         offsetRect = new RectF();
         matrix = new Matrix();
         offsetVect = new PointF();
+        this.handler = handler;
+    }
+
+    public void setHandler(Handler handler) {
+        this.handler = handler;
     }
 
     public PointF getOffsetVect() {
@@ -244,6 +267,10 @@ class Sheet {
         if (offsetVect.y + moveVect.y < offsetRect.top) {
             Log.d(LOG_TAG, "top exceeded");
             newOffsetVect.y = offsetRect.top;
+
+            Message msg = new Message();
+            msg.what = MsgWhatEnum.SHEET_MOVE_REACH_END.ordinal();
+            handler.sendMessage(msg);
         }
         if (offsetVect.y + moveVect.y > offsetRect.bottom) {
             Log.d(LOG_TAG, "bottom exceeded");
@@ -275,11 +302,16 @@ class SheetMoveRecorder {
     private boolean isPause = false;
     private Timer timer = null;
     private TimerTask timerTask = null;
+    private Handler handler = null;
 
     public SheetMoveRecorder(Sheet sheet) {
         this.sheet = sheet;
         offsetVectList = new LinkedList<PointF>();
         timeStepMS = DEF_TIME_STEP_MS;
+    }
+
+    public void setHandler(Handler handler) {
+        this.handler = handler;
     }
 
     public void setTimeStepMS(long stepMS) {
