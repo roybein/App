@@ -13,6 +13,7 @@ public class SheetController {
 
     public SheetController(Sheet sheet, SheetMoveRecorder recorder) {
         handlerThread = new HandlerThread("Sheet Control Handler Thread");
+        handlerThread.start();
         handler = new Handler(handlerThread.getLooper()) {
             @Override
             public void handleMessage(Message msg) {

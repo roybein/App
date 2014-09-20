@@ -1,13 +1,18 @@
-package com.example.sheetshowtry.app;
+package com.example.sheetshowtry.app.fake;
 
 import android.os.Handler;
 import android.os.Message;
+
+import com.example.sheetshowtry.app.ActivityManager;
+import com.example.sheetshowtry.app.IActivity;
+import com.example.sheetshowtry.app.ImageLoader;
+import com.example.sheetshowtry.app.MainActivity;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Worker extends Thread implements IProcess{
+public class Worker extends Thread implements IProcess {
 
     public int workerID;
     private Task task;

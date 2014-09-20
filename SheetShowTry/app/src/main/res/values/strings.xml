@@ -11,4 +11,7 @@
     <string name="load_sheet">Load Music Sheet</string>
     <string name="show_scroll_sheet">Show Sheet</string>
 
+    <string name="sheet_record_start">Start Record</string>
+    <string name="sheet_record_stop">Stop Record</string>
+
 </resources>

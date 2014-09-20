@@ -9,6 +9,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.sheetshowtry.app.craft.FileCache;
+import com.example.sheetshowtry.app.fake.Task;
+import com.example.sheetshowtry.app.fake.Worker;
+
 import java.util.ArrayList;
 import java.util.List;
 

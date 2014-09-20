@@ -7,7 +7,6 @@ import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,15 +17,13 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.ImageView;
 
 import com.example.sheetshowtry.app.craft.FitAxisEnum;
 import com.example.sheetshowtry.app.craft.MsgWhatEnum;
 
 import java.io.File;
-import java.util.LinkedList;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class SheetScrollShowActivity extends Activity {
 
@@ -38,51 +35,75 @@ public class SheetScrollShowActivity extends Activity {
     private ImageView sheetScrollShowView;
     private ViewTreeObserver vto;
     private Sheet sheet;
-    private SheetMoveRecorder recorder;
-    private SheetController controller;
-    private boolean isRecording = false;
+    public Handler handler;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
         setContentView(R.layout.activity_sheet_scroll_show);
+
         sheetScrollShowView = (ImageView) findViewById(R.id.sheet_scroll_image_view);
+        Button btnRecordStart = (Button) findViewById(R.id.sheet_record_start_button);
+        Button btnRecordStop = (Button) findViewById(R.id.sheet_record_stop_button);
 
-        new Thread(new Runnable() {
+        btnRecordStart.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                init();
-            }
-        }).start();
-
-        vto = sheetScrollShowView.getViewTreeObserver();
-        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        postLayoutInit();
-                    }
-                }).start();
+            public void onClick(View v) {
+                sheet.recorder.startRecord();
             }
         });
+
+        btnRecordStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sheet.recorder.stopRecord();
+                Log.i(LOG_TAG, "record result: " + sheet.offsetVectList.toString());
+            }
+        });
+
+        handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                MsgWhatEnum what = MsgWhatEnum.values()[msg.what];
+                switch (what) {
+                    case SHEET_SHOW:
+                        Log.i(LOG_TAG, "SHEET_SHOW");
+                        sheet.showInActivity(sheetScrollShowView);
+                        break;
+                    case SHEET_SHOW_WITH_MATRIX:
+                        sheet.showWithMatrixInActivity(sheetScrollShowView);
+                        break;
+                }
+            }
+        };
+
+        init();
+
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                init()
+//            }
+//        }).start();
     }
 
     protected void init() {
         bitmap = BitmapFactory.decodeFile(sampleSheetFile.getPath());
         Log.i(LOG_TAG, "get bitmap: " + bitmap.getWidth() + "," + bitmap.getHeight());
-        convertBitmapToFullScreen(bitmap);
+        bitmap = convertBitmapToFullScreen(bitmap);
 
-        sheet = new Sheet(bitmap, sheetScrollShowView);
-        recorder = new SheetMoveRecorder(sheet);
-        controller = new SheetController(sheet, recorder);
-        sheet.setHandler(controller.getHandler());
-        recorder.setHandler(controller.getHandler());
+        sheet = new Sheet(bitmap, handler);
         sheet.show();
+
+        vto = sheetScrollShowView.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                postLayoutInit();
+            }
+        });
     }
 
     protected void postLayoutInit() {
@@ -95,7 +116,7 @@ public class SheetScrollShowActivity extends Activity {
         sheetScrollShowView.setOnTouchListener(new SheetOnTouchListener(sheet));
     }
 
-    protected void convertBitmapToFullScreen(Bitmap bitmap) {
+    protected Bitmap convertBitmapToFullScreen(Bitmap bitmap) {
         Display display = getWindowManager().getDefaultDisplay();
         Point screenSize = new Point();
         display.getSize(screenSize);
@@ -104,6 +125,8 @@ public class SheetScrollShowActivity extends Activity {
         matrix.postScale(scaleRate, scaleRate);
         bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
                 bitmap.getHeight(), matrix, true);
+
+        return bitmap;
     }
 
     class SheetOnTouchListener implements View.OnTouchListener {
@@ -192,185 +215,3 @@ public class SheetScrollShowActivity extends Activity {
     }
 }
 
-class Sheet {
-    private final static String LOG_TAG = "Musibox";
-
-    private ImageView imageView;
-    private Rect imageViewRect;
-    private Bitmap bmp;
-    private RectF offsetRect;
-    private Matrix matrix;
-    private PointF offsetVect;
-    private FitAxisEnum fitAxis = FitAxisEnum.FitAxisNone;
-    private Handler handler = null;
-
-    protected Sheet(Bitmap bmp, ImageView view, Handler handler) {
-        this.imageView = view;
-        this.bmp = bmp;
-        offsetRect = new RectF();
-        matrix = new Matrix();
-        offsetVect = new PointF();
-        this.handler = handler;
-    }
-
-    public void setHandler(Handler handler) {
-        this.handler = handler;
-    }
-
-    public PointF getOffsetVect() {
-        return offsetVect;
-    }
-    protected void setImageViewRect(Rect rect) {
-        this.imageViewRect = rect;
-    }
-
-    protected void initOffsetRect() {
-        Log.d(LOG_TAG, "imageViewRect: " + imageViewRect.width() + "," + imageViewRect.height());
-        Log.d(LOG_TAG, "bmp: " + bmp.getWidth() + "," + bmp.getHeight());
-        offsetRect.left = imageViewRect.width() - bmp.getWidth();
-        offsetRect.right = 0;
-        offsetRect.top = imageViewRect.height() - bmp.getHeight();
-        offsetRect.bottom = 0;
-        Log.i(LOG_TAG, "init offset rectangle: " + offsetRect.toString());
-    }
-
-    protected void setFitAxis(FitAxisEnum fitAxis) {
-        this.fitAxis = fitAxis;
-    }
-
-    protected void show() {
-        imageView.setAdjustViewBounds(true);
-        imageView.setScaleType(ImageView.ScaleType.MATRIX);
-        imageView.setImageBitmap(bmp);
-    }
-
-    protected void move(PointF moveVect) {
-        Log.d(LOG_TAG, "move by vector: " + moveVect.toString() +
-                " from offsetVect: " + offsetVect.toString());
-        PointF newOffsetVect = new PointF();
-        if (fitAxis.equals(FitAxisEnum.FitAxisX)) {
-            Log.d(LOG_TAG, "fix axis x");
-            moveVect.x = 0;
-        } else if (fitAxis.equals(FitAxisEnum.FitAxisY)) {
-            Log.d(LOG_TAG, "fix axis y");
-            moveVect.y = 0;
-        }
-        newOffsetVect.set(offsetVect.x + moveVect.x, offsetVect.y + moveVect.y);
-        if (offsetVect.x + moveVect.x < offsetRect.left) {
-            Log.d(LOG_TAG, "left exceeded");
-            newOffsetVect.x = offsetRect.left;
-        }
-        if (offsetVect.x + moveVect.x > offsetRect.right) {
-            Log.d(LOG_TAG, "right exceeded");
-            newOffsetVect.x = offsetRect.right;
-        }
-        if (offsetVect.y + moveVect.y < offsetRect.top) {
-            Log.d(LOG_TAG, "top exceeded");
-            newOffsetVect.y = offsetRect.top;
-
-            Message msg = new Message();
-            msg.what = MsgWhatEnum.SHEET_MOVE_REACH_END.ordinal();
-            handler.sendMessage(msg);
-        }
-        if (offsetVect.y + moveVect.y > offsetRect.bottom) {
-            Log.d(LOG_TAG, "bottom exceeded");
-            newOffsetVect.y = offsetRect.bottom;
-        }
-        Log.d(LOG_TAG, "newoffsetVect: " + newOffsetVect.toString());
-
-        matrix.postTranslate(newOffsetVect.x - offsetVect.x , newOffsetVect.y - offsetVect.y);
-        offsetVect.set(newOffsetVect);
-    }
-
-    protected void showWithMatrix() {
-        imageView.setImageMatrix(matrix);
-        matrix.set(imageView.getImageMatrix());
-    }
-}
-
-class SheetMoveRecorder {
-
-    private final static String LOG_TAG = "Musibox";
-
-    private final static long MIM_TIME_STEP_MS = 100;
-    private final static long MAX_TIME_STEP_MS = 1000;
-    private final static long DEF_TIME_STEP_MS = 200;
-
-    private Sheet sheet;
-    private LinkedList<PointF> offsetVectList;
-    private long timeStepMS;
-    private boolean isPause = false;
-    private Timer timer = null;
-    private TimerTask timerTask = null;
-    private Handler handler = null;
-
-    public SheetMoveRecorder(Sheet sheet) {
-        this.sheet = sheet;
-        offsetVectList = new LinkedList<PointF>();
-        timeStepMS = DEF_TIME_STEP_MS;
-    }
-
-    public void setHandler(Handler handler) {
-        this.handler = handler;
-    }
-
-    public void setTimeStepMS(long stepMS) {
-        if (stepMS < MIM_TIME_STEP_MS) {
-            //TODO: too small step
-        } else if (stepMS > MAX_TIME_STEP_MS) {
-            //TODO: too big step
-        } else {
-            timeStepMS = stepMS;
-            Log.i(LOG_TAG, "set time step: " + stepMS + " ms");
-        }
-    }
-
-    protected void addOffset(PointF offsetVect) {
-        offsetVectList.add(offsetVect);
-    }
-
-
-    public void startRecord() {
-        if (timer == null) {
-            timer = new Timer();
-        }
-
-        if (timerTask == null) {
-            timerTask = new TimerTask() {
-                PointF offsetVect;
-                @Override
-                public void run() {
-                    offsetVect = sheet.getOffsetVect();
-                    addOffset(offsetVect);
-                    Log.i(LOG_TAG, "record at time " + System.currentTimeMillis() +
-                            " with " + offsetVect.toString());
-/*
-                    do {
-                        try {
-                            Thread.sleep();
-                        } catch (InterruptedException e) {
-                            //TODO:
-                        }
-                    } while (isPause);
-                    */
-                }
-            };
-        }
-
-        if (timer != null && timerTask != null) {
-            timer.schedule(timerTask, 0, timeStepMS);
-        }
-    }
-
-    public void stopRecord() {
-        if (timer != null) {
-            timer.cancel();
-            timer = null;
-        }
-
-        if (timerTask != null) {
-            timerTask.cancel();
-            timerTask = null;
-        }
-    }
-}

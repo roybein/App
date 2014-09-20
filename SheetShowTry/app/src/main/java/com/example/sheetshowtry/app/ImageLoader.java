@@ -1,9 +1,10 @@
 package com.example.sheetshowtry.app;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
+
+import com.example.sheetshowtry.app.craft.FileCache;
 
 import java.io.File;
 import java.io.FileInputStream;
